@@ -1,35 +1,36 @@
 .chart {
   display: block;
   margin: auto;
-  margin-top: 60px;
+  margin-top: 20px;
   font-size: 11px;
 }
 
-.event { fill: #0fb }
 .event-name { text-anchor: middle }
-rect {
-  stroke: #000;
-  fill: #aaa;
+
+g.g-strip g.s rect {
+  fill: #0fb;
+  stroke: black;
   fill-opacity: .8;
 }
 
-rect.parent {
-  cursor: pointer;
-  fill: steelblue;
+g.g-strip g.sc rect {
+  fill: #04f;
+  stroke: black;
+  fill-opacity: .8;
 }
 
 text {
   pointer-events: none;
 }
 
-.axis path, .axis line {
+.g-axis path, .g-axis line {
     fill: none;
     stroke: black;
     stroke-width: 2;
     shape-rendering: crispEdges;
 }
 
-.axis text {
+.g-axis text {
     color:black;
     font-family: sans-serif;
     font-size: 11px;
