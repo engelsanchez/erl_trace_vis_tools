@@ -19,7 +19,7 @@ rx = re.compile(r"""^
     \s+
     {\s+cpu_id\s+ = \s+(?P<cpu>\d+)\s+} # cpu_id
     \s*,\s*
-    {\s*(?P<context>.*)\s*} 
+    {\s*(?P<context>.*)\s*}
     \s*,\s*
     {\s*(?P<args>.*)\s*}
     \s*$
@@ -60,15 +60,15 @@ class ErlangThread:
         self.running = False
         self.secs = None
         self.nsecs = None
-        self.last_time = None
         self.last_event = None
         self.in_syscall = None
 
 class Scheduler(ErlangThread):
-    def __init__(self, num):
+    def __init__(self, num, tid):
         ErlangThread.__init__(self, num)
         self.number = num
         self.process = None
+        self.tid = tid
 
 class CPU:
     def __init__(self, num):
@@ -83,7 +83,7 @@ class TraceState:
     def __init__(self, num_cpus, tid2sched):
         self.start_secs = None
         self.start_nsecs = None
-        self.scheds = {tid: Scheduler(snum)\
+        self.scheds = {tid: Scheduler(snum, tid)\
                 for tid, snum in tid2sched.iteritems() }
         self.cpus = [ CPU(n) for n in range(0, num_cpus) ]
 
@@ -134,13 +134,14 @@ def load_sched_tids(fname):
             m = p.match(line)
             if m:
                 result[int(m.group(2))] = int(m.group(1))
-    #print("Tids results", result)
     return result
 
-def exit_sched_event(sched, ev):
+def exit_sched_event(sched, ev, state):
     p = sched.process
-    dt = time_diff(sched.secs, sched.nsecs, ev.secs, ev.nsecs) 
-    t = sched.last_time
+    dt = time_diff(sched.last_event.secs, sched.last_event.nsecs,
+            ev.secs, ev.nsecs)
+    t = time_diff(state.start_secs, state.start_nsecs,
+            sched.last_event.secs, sched.last_event.nsecs)
     snum = sched.number
     if p:
         return (snum,
@@ -148,7 +149,6 @@ def exit_sched_event(sched, ev):
     else:
         dbg = "%s -> %s" % (sched.last_event, ev)
         o = {'cl':'s', 't':t, 'dt':dt, 'dbg':dbg}
-        print("Event %s from %s" % (o, dbg))
         return (snum, o)
 
 def do_sched_switch(ev, state):
@@ -160,23 +160,30 @@ def do_sched_switch(ev, state):
         print("Matched prev_tid on ", ev)
         sched = state.scheds[prev_tid]
         if sched.running:
-            block = exit_sched_event(sched, ev)
-            print("======= exiting thread:", block)
+            syscall = sched.in_syscall
+            if syscall:
+                t = time_diff(state.start_secs, state.start_nsecs,
+                    syscall.secs, syscall.nsecs)
+                dt = time_diff(syscall.secs, syscall.nsecs,
+                    ev.secs, ev.nsecs)
+                dbg = "%s -> %s" % (syscall, ev)
+                block = {'cl':'sc','t':t,'dt':dt,'n':syscall.name, 'dbg':dbg}
+                print('===== syscall interrupted block:', ev, block)
+                out.append((sched.number, block))
+            else:
+                block = exit_sched_event(sched, ev, state)
+                print("======= exiting thread:", block)
+                state.cpus[ev.cpu].thread = None
+                out.append(block)
             sched.running = False
-            state.cpus[ev.cpu].thread = None
-            out.append(block)
         else:
             print("thread not running")
 
     if next_tid in state.scheds:
         print("Matched next_tid on ", ev)
         sched = state.scheds[next_tid]
-        sched.last_time = time_diff(state.start_secs,
-                state.start_nsecs, ev.secs, ev.nsecs)
         sched.last_event = ev
-        sched.secs = ev.secs
-        sched.nsecs = ev.nsecs
-        sched.running = True 
+        sched.running = True
 
         state.cpus[ev.cpu].thread = sched
 
@@ -190,33 +197,29 @@ def do_process_unscheduled(ev, state):
 
 def do_syscall_entry(ev, state):
     thread = state.cpus[ev.cpu].thread
-    if thread:
-        block = exit_sched_event(thread, ev)
-        print("======= Erlang thread block:", block)
+    if thread and thread.running and ev.tid == thread.tid:
+        block = exit_sched_event(thread, ev, state)
+        print("======= Erlang thread block during syscall:", ev, block)
         thread.in_syscall = ev
+        thread.last_event = ev
         return [block]
-    else:
-        print("no erlang thread for syscall")
     return []
 
 def do_syscall_exit(ev, state):
     thread = state.cpus[ev.cpu].thread
-    if thread:
-        start_ev = thread.in_syscall
-        if start_ev:
+    if thread and thread.running and thread.tid == ev.tid:
+        syscall = thread.in_syscall
+        if syscall:
+            last_ev = thread.last_event
             thread.in_syscall = None
             t = time_diff(state.start_secs, state.start_nsecs,
-                ev.secs, ev.nsecs)
-            thread.last_time = t
-            dt = time_diff(start_ev.secs, start_ev.nsecs,
-                ev.secs, ev.nsecs)
-            dbg = "%s -> %s" % (start_ev, ev)
-            block = {'cl':'sc','t':t,'dt':dt,'n':start_ev.name, 'dbg':dbg}
-            print('===== syscall block:', block)
+                    last_ev.secs, last_ev.nsecs)
+            thread.last_event = ev
+            dt = time_diff(last_ev.secs, last_ev.nsecs, ev.secs, ev.nsecs)
+            dbg = "%s -> %s" % (last_ev, ev)
+            block = {'cl':'sc','t':t,'dt':dt,'n':syscall.name, 'dbg':dbg}
+            print('===== syscall block:', ev, block)
             return [(thread.number, block)]
-
-    else:
-        print('no erlang thread for syscall')
     return []
 
 def do_irq_entry(ev, state):
@@ -252,11 +255,9 @@ def visual_blocks_iter(sched_tids):
         if not handler and e.name.startswith('sys_'):
             handler = do_syscall_entry
         if handler:
-            print(handler.func_name, ":", e)
+            #print(handler.func_name, ":", e)
             for el in handler(e, state):
                 yield el
-        else:
-            print('no handler: ', e)
 
 
 tids_file = sys.argv[1]
@@ -265,7 +266,7 @@ if not os.path.isdir(sname):
     os.mkdir(sname)
 tids = load_sched_tids(tids_file)
 s_files = ['dummy0']
-started_files = set() 
+started_files = set()
 
 try:
     for sn in range(1,len(tids)+1):

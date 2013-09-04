@@ -17,7 +17,7 @@ var wScale = d3.scale.linear()
     .domain([0, trace_data.duration]);
 
 var zoom = d3.behavior.zoom()
-    .scaleExtent([1,10])
+    .scaleExtent([1,1000])
     .x(tScale)
     .on("zoom", draw);
 
@@ -34,7 +34,7 @@ var vis = d3.select("#body").append("div")
     ;
 
 var tAxis = d3.svg.axis().scale(tScale).orient("top")
-    .ticks(10).tickFormat(fmtTime(0)).tickSize(20);
+    .ticks(10).tickFormat(fmtTime(3)).tickSize(20);
 
 var mg = vis.append("g")
     .attr("class", "g-main")
