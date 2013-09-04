@@ -12,6 +12,15 @@ var tScale = d3.scale.linear()
     .range([0, w])
     .domain([0, trace_data.duration]);
 
+var wScale = d3.scale.linear()
+    .range([0, w])
+    .domain([0, trace_data.duration]);
+
+var zoom = d3.behavior.zoom()
+    .scaleExtent([1,10])
+    .x(tScale)
+    .on("zoom", draw);
+
 var vis = d3.select("#body").append("div")
     .attr("class", "chart")
     .style("width", (totW) + "px")
@@ -19,14 +28,10 @@ var vis = d3.select("#body").append("div")
     .append("svg:svg")
     .attr("width", totW)
     .attr("height", h)
+    .call(zoom)
     .append("svg:g")
-    .attr("transform", "translate("+margin+",0)");
-
-var zoom = d3.behavior.zoom()
-    .scaleExtent([1,10])
-    .on("zoom", draw);
-
-zoom.x(tScale);
+    .attr("transform", "translate("+margin+",0)")
+    ;
 
 var tAxis = d3.svg.axis().scale(tScale).orient("top")
     .ticks(10).tickFormat(fmtTime(0)).tickSize(20);
@@ -34,7 +39,6 @@ var tAxis = d3.svg.axis().scale(tScale).orient("top")
 var mg = vis.append("g")
     .attr("class", "g-main")
     .attr("transform", "translate(0,"+axisHeight+")")
-    .call(zoom)
     ;
 
 var ag = vis.append("g")
@@ -45,18 +49,22 @@ var ag = vis.append("g")
 
 function draw(){
     tAxis(ag);
+    var n_threads = trace_data.threads.length;
+    for (var i=0;i< n_threads;++i){
+        draw_strip(i);
+    }
 }
 
 draw();
 
 function load_strip (strip, strip_i) {
     var sg = mg.append("svg:g")
-        .attr("class", "g-strip")
+        .attr("class", "g-strip g-strip-"+strip_i)
         .attr("transform", "translate(0, "+(strip_h*strip_i)+")");
 
     var g = sg.selectAll("g").data(strip.data)
         .enter().append("svg:g")
-        .attr("class", function(d){return d.cl;})
+        .attr("class", function(d){return "gs "+d.cl;})
         .attr("transform", function(d) {
             var x=tScale(d.t), y = strip_h * strip_i; 
             return "translate("+x+","+y+")"
@@ -76,6 +84,26 @@ function load_strip (strip, strip_i) {
     var fmt = fmtTime(1);
     g.append("title").text(function(d){
         return "t="+d.t+", dt="+fmt(d.dt)+", dbg="+d.dbg;});
+
+    function transform(d) {
+        return "translate("+tScale(d.dt)/2+"," + strip_h / 2 + ")";
+    }
+};
+
+function draw_strip (strip_i) {
+    var g = mg.selectAll(".g-strip-"+strip_i+" g.gs")
+        .attr("transform", function(d) {
+            var x=tScale(d.t), y = strip_h * strip_i; 
+            return "translate("+x+","+y+")"
+        });
+
+    g.select("rect") .attr("width", function(d){
+        return wScale(d.dt)*zoom.scale();
+    }) ;
+
+    g.select("text")
+        .attr("transform", transform)
+        ;
 
     function transform(d) {
         return "translate("+tScale(d.dt)/2+"," + strip_h / 2 + ")";
