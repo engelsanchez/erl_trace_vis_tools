@@ -4,11 +4,36 @@
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
     <link type="text/css" rel="stylesheet" href="style.css"/>
     <script src="http://d3js.org/d3.v3.js" charset="utf-8"></script>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
     <title>Erlang Trace Visualization</title>
   </head>
   <body>
-    <div id="body">
-      <div id="header"> Erlang Trace </div>
+    <div id="main">
+      <div id="header">Erlang Trace Visualization</div>
+      <div id="body">
+          <div id="side-panel"></div>
+          <div id="vis-panel"></div>
+      </div>
+      <div id="footer">
+          <div id="instructions">
+              Pan by dragging, zoom witht the scrollwheel
+          </div>
+          <div id="legend">
+              <span class="legend-block legend-erlang"></span>
+              <span class="legend-label">Erlang VM</span>
+              <span class="legend-block legend-proc"></span>
+              <span class="legend-label">Erlang Process</span>
+              <span class="legend-block legend-port"></span>
+              <span class="legend-label">Port Task</span>
+              <span class="legend-block legend-syscall"></span>
+              <span class="legend-label">System Call</span>
+              <span class="legend-block legend-hirq"></span>
+              <span class="legend-label">Hardware Interrupt</span>
+              <span class="legend-block legend-sirq"></span>
+              <span class="legend-label">Soft Interrupt</span>
+
+          </div>
+      </div>
     </div>
     <script type="text/javascript" src="metadata.js"></script>
     <script type="text/javascript" src="main.js"></script>

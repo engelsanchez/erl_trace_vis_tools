@@ -1,8 +1,8 @@
 (function() {
 
 var w = 1000,
+    strip_h = 20,
     h = 600,
-    strip_h = 40,
     margin = 15,
     totW = w + 2 * margin,
     lblDx = 100,
@@ -21,10 +21,7 @@ var zoom = d3.behavior.zoom()
     .x(tScale)
     .on("zoom", draw);
 
-var vis = d3.select("#body").append("div")
-    .attr("class", "chart")
-    .style("width", (totW) + "px")
-    .style("height", h + "px")
+var vis = d3.select("#vis-panel")
     .append("svg:svg")
     .attr("width", totW)
     .attr("height", h)
@@ -66,13 +63,19 @@ function load_strip (strip, strip_i) {
         .enter().append("svg:g")
         .attr("class", function(d){return "gs "+d.cl;})
         .attr("transform", function(d) {
-            var x=tScale(d.t), y = strip_h * strip_i; 
-            return "translate("+x+","+y+")"
+            var x=tScale(d.t); 
+            return "translate("+x+",0)"
         });
 
     g.append("svg:rect")
         .attr("width", function(d){return tScale(d.dt)})
-        .attr("height", strip_h)
+        .attr("height",function(d) {
+            return d.cl == 's' ? strip_h-4 : strip_h-6;
+        })
+        .attr("transform", function(d){
+            var y = d.cl == 's' ? 0 : 1;
+            return "translate(0,"+y+")";
+        })
         .attr("class", "event"); 
 
     g.append("svg:text")
@@ -93,8 +96,8 @@ function load_strip (strip, strip_i) {
 function draw_strip (strip_i) {
     var g = mg.selectAll(".g-strip-"+strip_i+" g.gs")
         .attr("transform", function(d) {
-            var x=tScale(d.t), y = strip_h * strip_i; 
-            return "translate("+x+","+y+")"
+            var x=tScale(d.t); 
+            return "translate("+x+",0)"
         });
 
     g.select("rect") .attr("width", function(d){
@@ -111,10 +114,13 @@ function draw_strip (strip_i) {
 };
 
 trace_data.threads.forEach(function(thread, idx){
+    d3.select("#side-panel").append("div").attr("class", "strip-label").text(thread.name);
+
     d3.json(thread.file, function(strip){
         console.log("Loaded json ", strip);
         load_strip(strip, idx);
     });
+
 });
 
 function fmtTime(p) {

@@ -1,39 +1,67 @@
-.chart {
+.strip-label {
+    height:15px;
+    width:100px;
+    margin:0;
+    padding:2px;
+    border-right:1px solid #333;
+    border-bottom:1px solid #333;
+    font-size:12px;
+    font-family:verdana;
+}
+
+#main {
+    margin:0;
+    padding:10px;
+}
+
+#side-panel {
+    width:100px;
+    float:left;
+    padding-top:40px;
+}
+
+#vis-panel {
   display: block;
-  margin: auto;
-  margin-top: 20px;
+  width:1000px;
+  margin-left:110px;
+  height:160px;
   font-size: 11px;
 }
 
 .event-name { text-anchor: middle }
 
+.legend-erlang{ background-color:#0fb; }
 g.g-strip g.s rect {
   fill: #0fb;
   stroke: black;
   fill-opacity: 1;
 }
 
-
+.legend-sirq{background-color:#f52}
 g.g-strip g.f rect {
   fill: #f52;
   fill-opacity: .8;
 }
 
+.legend-hirq{background-color:#f00}
 g.g-strip g.h rect {
   fill: #f00;
   fill-opacity: .8;
 }
 
+.legend-syscall{background-color:#04f}
 g.g-strip g.c rect {
   fill: #04f;
   fill-opacity: .8;
 }
 
+.legend-proc{background-color:#282}
 g.g-strip g.p rect {
   fill: #282;
   fill-opacity: .8;
 }
 
+.legend-port{background-color:#ff0}
 g.g-strip g.t rect {
   fill: #ff0;
   fill-opacity: .8;
@@ -56,3 +84,15 @@ text {
     font-size: 11px;
 }
 
+.legend-block{
+    display:inline-block;
+    height:12px;
+    width:12px;
+    border: 1px solid black;
+    vertical-align:baseline;
+    margin-left:20px;
+    margin-right:5px;
+}
+#instructions{
+    margin:5px 5px 5px 20px;
+}
