@@ -10,12 +10,32 @@
 g.g-strip g.s rect {
   fill: #0fb;
   stroke: black;
+  fill-opacity: 1;
+}
+
+
+g.g-strip g.f rect {
+  fill: #f52;
   fill-opacity: .8;
 }
 
-g.g-strip g.sc rect {
+g.g-strip g.h rect {
+  fill: #f00;
+  fill-opacity: .8;
+}
+
+g.g-strip g.c rect {
   fill: #04f;
-  stroke: black;
+  fill-opacity: .8;
+}
+
+g.g-strip g.p rect {
+  fill: #282;
+  fill-opacity: .8;
+}
+
+g.g-strip g.t rect {
+  fill: #ff0;
   fill-opacity: .8;
 }
 
